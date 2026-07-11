@@ -5,6 +5,7 @@ export const InputFile = {
   init,
   toImageFile,
   readFileData,
+  readFileDataAtPosition,
 };
 
 interface BrowserFile {
@@ -108,6 +109,26 @@ async function toImageFile(elem: InputElement, fileId: number, format: string, m
 async function readFileData(elem: InputElement, fileId: number): Promise<Blob> {
   const file = getFileById(elem, fileId);
   return file.blob;
+}
+
+async function readFileDataAtPosition(elem: InputElement, fileId: number, position: number, length: number): Promise<Blob> {
+  const file = getFileById(elem, fileId);
+
+  if (position < 0 || position > file.size) {
+    throw new Error(`Invalid position ${position} for file of size ${file.size}.`);
+  }
+
+  if (length < 0) {
+    throw new Error(`Invalid length ${length}. Length must be non-negative.`);
+  }
+
+  const actualLength = Math.min(length, file.size - position);
+
+  if (actualLength <= 0) {
+    return new Blob([], { type: file.contentType });
+  }
+
+  return file.blob.slice(position, position + actualLength, file.contentType);
 }
 
 export function getFileById(elem: InputElement, fileId: number): BrowserFile {

@@ -33,7 +33,7 @@ internal sealed class BrowserFile : IBrowserFile
 
     public string? RelativePath { get; set; }
 
-    public Stream OpenReadStream(long maxAllowedSize = 512000, CancellationToken cancellationToken = default)
+    public Stream OpenReadStream(long maxAllowedSize = 500 * 1024, CancellationToken cancellationToken = default)
     {
         if (Size > maxAllowedSize)
         {
@@ -41,5 +41,15 @@ internal sealed class BrowserFile : IBrowserFile
         }
 
         return Owner.OpenReadStream(this, maxAllowedSize, cancellationToken);
+    }
+
+    public Stream OpenReadStreamSeekable(long maxAllowedSize = 500 * 1024, CancellationToken cancellationToken = default)
+    {
+        if (Size > maxAllowedSize)
+        {
+            throw new IOException($"Supplied file with size {Size} bytes exceeds the maximum of {maxAllowedSize} bytes.");
+        }
+
+        return Owner.OpenReadStreamSeekable(this, maxAllowedSize, cancellationToken);
     }
 }

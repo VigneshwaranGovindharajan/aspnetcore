@@ -11,5 +11,7 @@ internal static class InputFileInterop
 
     public const string ReadFileData = JsFunctionsPrefix + "readFileData";
 
+    public const string ReadFileDataAtPosition = JsFunctionsPrefix + "readFileDataAtPosition";
+
     public const string ToImageFile = JsFunctionsPrefix + "toImageFile";
 }

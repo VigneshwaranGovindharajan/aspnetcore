@@ -72,6 +72,14 @@ public class InputFile : ComponentBase, IInputFileJsCallbacks, IDisposable
             maxAllowedSize,
             cancellationToken);
 
+    internal Stream OpenReadStreamSeekable(BrowserFile file, long maxAllowedSize, CancellationToken cancellationToken)
+        => new BrowserFileStreamSeekable(
+            JSRuntime,
+            _inputFileElement,
+            file,
+            maxAllowedSize,
+            cancellationToken);
+
     internal async ValueTask<IBrowserFile> ConvertToImageFileAsync(BrowserFile file, string format, int maxWidth, int maxHeight)
     {
         var imageFile = await JSRuntime.InvokeAsync<BrowserFile>(InputFileInterop.ToImageFile, _inputFileElement, file.Id, format, maxWidth, maxHeight);

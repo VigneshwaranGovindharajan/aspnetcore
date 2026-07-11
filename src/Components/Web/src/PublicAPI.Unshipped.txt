@@ -58,6 +58,7 @@ Microsoft.AspNetCore.Components.Web.SupplyParameterFromTempDataAttribute
 Microsoft.AspNetCore.Components.Web.SupplyParameterFromTempDataAttribute.Name.get -> string?
 Microsoft.AspNetCore.Components.Web.SupplyParameterFromTempDataAttribute.Name.set -> void
 Microsoft.AspNetCore.Components.Web.SupplyParameterFromTempDataAttribute.SupplyParameterFromTempDataAttribute() -> void
+static Microsoft.AspNetCore.Components.Forms.BrowserFileExtensions.OpenReadStreamSeekable(this Microsoft.AspNetCore.Components.Forms.IBrowserFile! file, long maxAllowedSize = 512000, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.IO.Stream!
 virtual Microsoft.AspNetCore.Components.Forms.InputFile.Dispose(bool disposing) -> void
 Microsoft.AspNetCore.Components.Forms.DisplayName<TValue>
 Microsoft.AspNetCore.Components.Forms.DisplayName<TValue>.DisplayName() -> void
