@@ -221,6 +221,240 @@ public class InputFileTest : ServerTestBase<ToggleExecutionModeServerFixture<Pro
         Browser.Equal("0", () => Browser.Exists(By.Id("file-count")).Text);
     }
 
+    [Fact]
+    public void CanSeekToBeginningOfFile()
+    {
+        var content = "BEGIN_MIDDLE_END";
+        var file = TempFile.Create(_tempDirectory, "txt", content);
+        var inputFile = Browser.Exists(By.Id("input-file"));
+
+        inputFile.SendKeys(file.Path);
+
+        var fileContainer = Browser.Exists(By.Id($"file-{file.Name}"));
+        var fileContentElement = fileContainer.FindElement(By.Id("file-content"));
+
+        Browser.Equal(content, () => fileContentElement.Text);
+        Browser.True(() => fileContentElement.Text.StartsWith("BEGIN", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void CanSeekToMiddleOfFile()
+    {
+        var contentBuilder = new StringBuilder();
+        var size = 1000;
+
+        for (int i = 0; i < size; i++)
+        {
+            contentBuilder.Append((i % 10).ToString(CultureInfo.InvariantCulture));
+        }
+
+        var file = TempFile.Create(_tempDirectory, "txt", contentBuilder.ToString());
+        var inputFile = Browser.Exists(By.Id("input-file"));
+
+        inputFile.SendKeys(file.Path);
+
+        var fileContainer = Browser.Exists(By.Id($"file-{file.Name}"));
+        var fileContentElement = fileContainer.FindElement(By.Id("file-content"));
+        var fileSizeElement = fileContainer.FindElement(By.Id("file-size"));
+
+        Browser.Equal(size.ToString(CultureInfo.InvariantCulture), () => fileSizeElement.Text);
+        Browser.Equal(contentBuilder.ToString(), () => fileContentElement.Text);
+    }
+
+    [Fact]
+    public void CanSeekFromEndOfFileUsingNegativeOffset()
+    {
+        var startContent = new string('A', 100);
+        var middleContent = new string('B', 100);
+        var endContent = new string('C', 100);
+        var content = startContent + middleContent + endContent;
+        var file = TempFile.Create(_tempDirectory, "txt", content);
+        var inputFile = Browser.Exists(By.Id("input-file"));
+
+        inputFile.SendKeys(file.Path);
+
+        var fileContainer = Browser.Exists(By.Id($"file-{file.Name}"));
+        var fileContentElement = fileContainer.FindElement(By.Id("file-content"));
+        var fileContent = fileContentElement.Text;
+
+        Browser.True(() => fileContent.EndsWith(endContent, StringComparison.Ordinal));
+        Browser.True(() => fileContent.Length == 300);
+    }
+
+    [Fact]
+    public void CanSeekFromCurrentPositionBackward()
+    {
+        var sections = new[] { "FIRST", "SECOND", "THIRD" };
+        var content = string.Join("|", sections);
+        var file = TempFile.Create(_tempDirectory, "txt", content);
+        var inputFile = Browser.Exists(By.Id("input-file"));
+
+        inputFile.SendKeys(file.Path);
+
+        var fileContainer = Browser.Exists(By.Id($"file-{file.Name}"));
+        var fileContentElement = fileContainer.FindElement(By.Id("file-content"));
+        var fileContent = fileContentElement.Text;
+
+        Browser.True(() => fileContent.Contains("FIRST"));
+        Browser.True(() => fileContent.Contains("SECOND"));
+        Browser.True(() => fileContent.Contains("THIRD"));
+    }
+
+    [Fact]
+    public void CanSeekFromCurrentPositionForward()
+    {
+        var uniqueMarkers = "MARKER1_MARKER2_MARKER3";
+        var file = TempFile.Create(_tempDirectory, "txt", uniqueMarkers);
+        var inputFile = Browser.Exists(By.Id("input-file"));
+
+        inputFile.SendKeys(file.Path);
+
+        var fileContainer = Browser.Exists(By.Id($"file-{file.Name}"));
+        var fileContentElement = fileContainer.FindElement(By.Id("file-content"));
+
+        Browser.Equal(uniqueMarkers, () => fileContentElement.Text);
+    }
+
+    [Fact]
+    public void CanHandleEmptyFile()
+    {
+        var file = TempFile.Create(_tempDirectory, "txt", "");
+        var inputFile = Browser.Exists(By.Id("input-file"));
+
+        inputFile.SendKeys(file.Path);
+
+        var fileContainer = Browser.Exists(By.Id($"file-{file.Name}"));
+        var fileSizeElement = fileContainer.FindElement(By.Id("file-size"));
+        var fileContentElement = fileContainer.FindElement(By.Id("file-content"));
+
+        Browser.Equal("0", () => fileSizeElement.Text);
+        Browser.Equal("", () => fileContentElement.Text);
+    }
+
+    [Fact]
+    public void CanHandleSingleByteFile()
+    {
+        var file = TempFile.Create(_tempDirectory, "txt", "X");
+        var inputFile = Browser.Exists(By.Id("input-file"));
+        inputFile.SendKeys(file.Path);
+        var fileContainer = Browser.Exists(By.Id($"file-{file.Name}"));
+        var fileSizeElement = fileContainer.FindElement(By.Id("file-size"));
+        var fileContentElement = fileContainer.FindElement(By.Id("file-content"));
+        Browser.Equal("1", () => fileSizeElement.Text);
+        Browser.Equal("X", () => fileContentElement.Text);
+    }
+
+    [Fact]
+    public void CanSeekInLargeFile_RandomAccessWorks()
+    {
+        var fileContentSizeInBytes = 5 * 1024 * 1024;
+        var contentBuilder = new StringBuilder();
+        var pattern = "LARGEFILETEST_";
+        var repetitions = fileContentSizeInBytes / pattern.Length;
+
+        for (int i = 0; i < repetitions; i++)
+        {
+            contentBuilder.Append(pattern);
+        }
+
+        var reminder = fileContentSizeInBytes % pattern.Length;
+
+        if (reminder > 0)
+        {
+            contentBuilder.Append(pattern.Substring(0, (int)reminder));
+        }
+
+        var file = TempFile.Create(_tempDirectory, "txt", contentBuilder.ToString());
+        var inputFile = Browser.Exists(By.Id("input-file"));
+
+        inputFile.SendKeys(file.Path);
+
+        var fileContainer = Browser.Exists(By.Id($"file-{file.Name}"));
+        var fileSizeElement = fileContainer.FindElement(By.Id("file-size"));
+
+        Browser.Equal(fileContentSizeInBytes.ToString(CultureInfo.InvariantCulture),
+            () => fileSizeElement.Text);
+    }
+
+    [Fact]
+    public void CanSeekInBinaryFile()
+    {
+        var binaryContent = new byte[2048];
+
+        for (int i = 0; i < binaryContent.Length; i++)
+        {
+            binaryContent[i] = (byte)(i % 256);
+        }
+
+        var file = TempFile.Create(_tempDirectory, "bin", binaryContent);
+        var inputFile = Browser.Exists(By.Id("input-file"));
+
+        inputFile.SendKeys(file.Path);
+
+        var fileContainer = Browser.Exists(By.Id($"file-{file.Name}"));
+        var fileSizeElement = fileContainer.FindElement(By.Id("file-size"));
+        Browser.Equal("2048", () => fileSizeElement.Text);
+    }
+
+    [Fact]
+    public void CanSeekMultipleTimesSequentially_PositionAdvancesCorrectly()
+    {
+        var part1 = new string('A', 300);
+        var part2 = new string('B', 300);
+        var part3 = new string('C', 300);
+        var content = part1 + part2 + part3;
+        var file = TempFile.Create(_tempDirectory, "txt", content);
+        var inputFile = Browser.Exists(By.Id("input-file"));
+
+        inputFile.SendKeys(file.Path);
+
+        var fileContainer = Browser.Exists(By.Id($"file-{file.Name}"));
+        var fileContentElement = fileContainer.FindElement(By.Id("file-content"));
+        var fileContent = fileContentElement.Text;
+
+        Browser.Equal(900, () => fileContent.Length);
+        Browser.True(() => fileContent.StartsWith(part1, StringComparison.Ordinal));
+        Browser.Contains(part2, () => fileContent);
+        Browser.True(() => fileContent.EndsWith(part3, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void CanSeekWithSpecialCharacters()
+    {
+        var content = "START_🎉_MIDDLE_🚀_END";
+        var file = TempFile.Create(_tempDirectory, "txt", content);
+        var inputFile = Browser.Exists(By.Id("input-file"));
+
+        inputFile.SendKeys(file.Path);
+
+        var fileContainer = Browser.Exists(By.Id($"file-{file.Name}"));
+        var fileContentElement = fileContainer.FindElement(By.Id("file-content"));
+
+        Browser.True(() => fileContentElement.Text.Contains("START"));
+        Browser.True(() => fileContentElement.Text.Contains("END"));
+    }
+
+    [Fact]
+    public void CanSeekAcrossFileBoundaries()
+    {
+        var segments = Enumerable.Range(0, 10)
+            .Select(i => $"SEGMENT_{i}_")
+            .Aggregate((a, b) => a + b);
+        var file = TempFile.Create(_tempDirectory, "txt", segments);
+        var inputFile = Browser.Exists(By.Id("input-file"));
+
+        inputFile.SendKeys(file.Path);
+
+        var fileContainer = Browser.Exists(By.Id($"file-{file.Name}"));
+        var fileContentElement = fileContainer.FindElement(By.Id("file-content"));
+        var content = fileContentElement.Text;
+
+        for (int i = 0; i < 10; i++)
+        {
+            Browser.True(() => content.Contains($"SEGMENT_{i}_"));
+        }
+    }
+
     public void Dispose()
     {
         Directory.Delete(_tempDirectory, recursive: true);
